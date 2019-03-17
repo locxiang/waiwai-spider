@@ -1,0 +1,17 @@
+redis:
+  addr: 127.0.0.1:6379
+log:
+  writers: stdout
+  logger_level: DEBUG
+  logger_file: storage/logs/log.log
+  log_format_text: true
+  rollingPolicy: size
+  log_rotate_date: 1
+  log_rotate_size: 1
+  log_backup_count: 7
+
+mysql:
+  host: 127.0.0.1:3306
+  user: root
+  pass: root123
+  db: compile
