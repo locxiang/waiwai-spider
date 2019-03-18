@@ -1,15 +1,16 @@
 package waiwai
 
 import (
-	"github.com/tidwall/gjson"
 	"fmt"
-	"time"
 	"github.com/lexkong/log"
-	"net/http/cookiejar"
-	"net/http"
-	"io/ioutil"
-	"os"
+	"github.com/tidwall/gjson"
 	"io"
+	"io/ioutil"
+	"net/http"
+	"net/http/cookiejar"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 //单例爬虫
@@ -41,14 +42,14 @@ func New() *Spider {
 
 	client := &http.Client{
 		Jar:     jar,
-		Timeout: 10 * time.Second,
+		Timeout: 100 * time.Second,
 	}
 
 	spider = &Spider{
 		tasks: make(chan Tasker),
 		Sleep: func() {
 			log.Debugf("执行暂停")
-			time.Sleep(5000 * time.Millisecond) //暂停时间
+			time.Sleep(200 * time.Millisecond) //暂停时间
 		},
 		client: client,
 	}
@@ -57,7 +58,6 @@ func New() *Spider {
 	go spider.executeTask()
 	return spider
 }
-
 
 //添加任务
 func (r *Spider) AddTask(task Tasker) {
@@ -75,9 +75,18 @@ func (r *Spider) executeTask() {
 			log.Debugf("暂时没有任务")
 		case task := <-r.tasks:
 			//执行任务
-			if err := task.Run(); err != nil {
-				log.Error("task run ", err)
-				return
+			for i, p := 1, 1; true; i *= 2 {
+				if err := task.Run(); err != nil {
+					log.Error("task run ", err)
+					for j := i; j > 0; j-- {
+						r.Sleep()
+					}
+					log.Infof("第%d次重试：...", p)
+					p++
+					continue
+				} else {
+					break
+				}
 			}
 
 			//记录任务情况
@@ -100,10 +109,14 @@ func (r *Spider) executeTask() {
 }
 
 //下载文件
-func (r *Spider) downFile(req *http.Request, desFile string) (error) {
-	log.Debugf("准备下载:%s 到 %s", req.URL, desFile, desFile)
+func (r *Spider) downFile(req *http.Request, desFile string) error {
+	log.Debugf("准备下载:%s 到 %s", req.URL, desFile)
 
-	return nil
+	dir, _ := filepath.Split(desFile)
+	//判断是不是有文件夹，如果没有就创建
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.MkdirAll(dir, os.ModePerm)
+	}
 
 	resp, err := r.client.Do(req)
 	if err != nil {

@@ -47,7 +47,7 @@ func (b *BookMenuTask) Next() error {
 		//给一个key设定为响应的value.
 		req.Header.Set("Content-Type", "application/json")
 
-		if err := NewBookDetailsTask(req, &bookChapter); err != nil {
+		if err := NewBookDetailsTask(req, bookChapter); err != nil {
 			log.Error("book_menu task new error:", err)
 		}
 	}

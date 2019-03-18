@@ -1,10 +1,10 @@
 package waiwai
 
 import (
-	"github.com/tidwall/gjson"
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"github.com/lexkong/log"
+	"github.com/tidwall/gjson"
 	"net/http"
 )
 
@@ -24,7 +24,7 @@ func (books *BooksTask) Record() error {
 func RunEntry() error {
 
 	//入口
-	url := "https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=2&page=1&category="
+	url := "https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=2000&page=1&category="
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -105,6 +105,9 @@ func (books *BooksTask) printf() {
 //下一步
 func (books *BooksTask) Next() error {
 	for _, book := range books.Data {
+		//把书存下来
+		AddBook(book)
+
 		// 把书全部加入到队列
 		menuUrl := fmt.Sprintf("https://m.tititoy2688.com/query/book/directory?bookId=%d", book.ID)
 

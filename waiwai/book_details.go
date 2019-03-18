@@ -2,19 +2,21 @@ package waiwai
 
 import (
 	"encoding/json"
-	"net/http"
-	"github.com/lexkong/log"
+	"errors"
 	"fmt"
+	"github.com/lexkong/log"
 	"github.com/tidwall/gjson"
+	"net/http"
 )
 
+//获取章节详情
 type BookDetailsTask struct {
 	req     *http.Request
-	Chapter *BookChapter
+	Chapter BookChapter
 	Data    BookDetailsList
 }
 
-func NewBookDetailsTask(req *http.Request, Chapter *BookChapter) error {
+func NewBookDetailsTask(req *http.Request, Chapter BookChapter) error {
 	b := new(BookDetailsTask)
 	b.req = req
 	b.Chapter = Chapter
@@ -32,8 +34,12 @@ func (b *BookDetailsTask) Run() error {
 		return err
 	}
 
-	body = gjson.Get(body,"list").String()
 	fmt.Printf("%s \n", body)
+
+	body = gjson.Get(body, "imageList").String()
+	if body == "" {
+		return errors.New("imageList is null")
+	}
 	err = json.Unmarshal([]byte(body), &b.Data)
 	return err
 }
@@ -43,20 +49,28 @@ func (b *BookDetailsTask) Next() error {
 
 	//下载图片
 	for _, detail := range b.Data {
+
 		req, err := http.NewRequest(http.MethodGet, detail.URL, nil)
 		if err != nil {
 			log.Error("http NewRequest", err)
 			continue
 		}
-		filename := fmt.Sprintf("%d_%d_%s.jpg", b.Chapter.BookID, b.Chapter.ID, detail.ID)
-		spider.downFile(req, "/tmp/"+filename)
+
+		book, err := GetBook(b.Chapter.BookID)
+		if err != nil {
+			log.Error("BookDetailsTask Next GetBook", err)
+			continue
+		}
+
+		filename := fmt.Sprintf("%s/%s/%s.jpg", book.Name, b.Chapter.Title, detail.ID)
+		spider.downFile(req, "/tmp/books/"+filename)
 	}
 
 	return nil
 }
 
 func (b *BookDetailsTask) Record() error {
-	log.Debugf("文章数量:%d", len(b.Data))
+	log.Debugf("图片数量:%d", len(b.Data))
 	return nil
 }
 
