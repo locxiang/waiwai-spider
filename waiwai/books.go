@@ -24,7 +24,7 @@ func (books *BooksTask) Record() error {
 func RunEntry() error {
 
 	//入口
-	url := "https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=2000&page=1&category="
+	url := "https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=2&page=1&category="
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -32,6 +32,7 @@ func RunEntry() error {
 	}
 	//给一个key设定为响应的value.
 	req.Header.Set("Content-Type", "application/json")
+
 
 	books := new(BooksTask)
 	books.req = req
@@ -118,6 +119,8 @@ func (books *BooksTask) Next() error {
 		}
 		//给一个key设定为响应的value.
 		req.Header.Set("Content-Type", "application/json")
+
+
 
 		if err := new(BookMenuTask).New(req); err != nil {
 			log.Error("book_menu task new error:", err)

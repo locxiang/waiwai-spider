@@ -1,6 +1,7 @@
 package waiwai
 
 import (
+	"context"
 	"fmt"
 	"github.com/lexkong/log"
 	"github.com/tidwall/gjson"
@@ -26,9 +27,11 @@ type Tasker interface {
 
 //定义爬虫
 type Spider struct {
-	tasks  chan Tasker  //执行任务队列
-	Sleep  func()       //暂停时间
-	client *http.Client //http 引擎
+	tasks      *SyncQueue         //执行任务队列
+	Sleep      func()             //暂停时间
+	client     *http.Client       //http 引擎
+	cancel     context.CancelFunc //任务完全结束
+	concurrent int                //并发数
 }
 
 //http client 引擎
@@ -37,7 +40,7 @@ func (r *Spider) request() *http.Client {
 }
 
 //创建一个爬虫
-func New() *Spider {
+func New(ctx context.Context, cancel context.CancelFunc) *Spider {
 	jar, _ := cookiejar.New(nil)
 
 	client := &http.Client{
@@ -46,34 +49,43 @@ func New() *Spider {
 	}
 
 	spider = &Spider{
-		tasks: make(chan Tasker),
+		tasks: NewSyncQueue(),
 		Sleep: func() {
 			log.Debugf("执行暂停")
 			time.Sleep(200 * time.Millisecond) //暂停时间
 		},
-		client: client,
+		client:     client,
+		cancel:     cancel,
+		concurrent: 1,
 	}
 
+	for i := spider.concurrent; i > 0; i-- {
+		go spider.executeTask(ctx)
+	}
 	//开启任务执行
-	go spider.executeTask()
 	return spider
 }
 
 //添加任务
 func (r *Spider) AddTask(task Tasker) {
-	go func(task Tasker) {
-		r.tasks <- task
-	}(task)
+	r.tasks.Push(task)
 }
 
 //执行任务
-func (r *Spider) executeTask() {
-
+func (r *Spider) executeTask(ctx context.Context) {
+	c := spider.tasks.NewConsumer()
 	for {
 		select {
-		case <-time.After(1 * time.Second):
-			log.Debugf("暂时没有任务")
-		case task := <-r.tasks:
+		case <-ctx.Done():
+			log.Infof("ctx.Done 结束")
+			return
+
+		case <-time.After(10 * time.Second):
+			log.Debugf("暂时没有任务，结束")
+			r.cancel()
+			return
+		case v := <-c:
+			task := v.(Tasker)
 			//执行任务
 			for i, p := 1, 1; true; i *= 2 {
 				if err := task.Run(); err != nil {

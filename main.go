@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
+	"github.com/lexkong/log"
+	"github.com/locxiang/waiwai-spider/config"
 	"github.com/locxiang/waiwai-spider/waiwai"
 	"github.com/spf13/pflag"
+	"os"
 	"runtime"
-	"github.com/locxiang/waiwai-spider/config"
+	"runtime/trace"
 )
 
 var (
@@ -12,6 +16,17 @@ var (
 )
 
 func main() {
+
+
+	f, _ := os.Create("trace.out")
+	trace.Start(f)
+
+	defer func() {
+		f.Close()
+		trace.Stop()
+	}()
+
+
 	//使用全部cpu
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	pflag.Parse()
@@ -21,9 +36,14 @@ func main() {
 		panic(err)
 	}
 
-	waiwai.New()
+	ctx, cancel := context.WithCancel(context.Background())
+	waiwai.New(ctx, cancel)
+
 
 	waiwai.RunEntry()
 
-	select {}
+	<-ctx.Done()
+
+	log.Info("完成")
+
 }
