@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"github.com/locxiang/waiwai-spider/waiwai"
 	"testing"
+	"time"
 )
 
 func TestNewSyncQueue(t *testing.T) {
 	q := waiwai.NewSyncQueue()
 
-	//写
-	go func() {
-		for i:=1;i<=10;i++{
-			q.Push(i)
-		}
-	}()
-
+	//读
 	go func() {
 		consumer := q.NewConsumer()
 		i := 0
@@ -27,6 +22,7 @@ func TestNewSyncQueue(t *testing.T) {
 			fmt.Printf("消费者1:  %d \n", v)
 		}
 	}()
+
 
 	go func() {
 		consumer := q.NewConsumer()
@@ -40,5 +36,10 @@ func TestNewSyncQueue(t *testing.T) {
 		}
 	}()
 
-	select {}
+	time.Sleep(1 * time.Second)
+	//写
+	for i:=1;i<=10;i++{
+		q.Push(i)
+	}
+	time.Sleep(1 *time.Second)
 }

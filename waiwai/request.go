@@ -56,7 +56,7 @@ func New(ctx context.Context, cancel context.CancelFunc) *Spider {
 		},
 		client:     client,
 		cancel:     cancel,
-		concurrent: 1,
+		concurrent: 4,
 	}
 
 	for i := spider.concurrent; i > 0; i-- {

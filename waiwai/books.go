@@ -24,7 +24,7 @@ func (books *BooksTask) Record() error {
 func RunEntry() error {
 
 	//入口
-	url := "https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=2&page=1&category="
+	url := "https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=2000&page=1&category="
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
