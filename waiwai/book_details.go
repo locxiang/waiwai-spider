@@ -87,8 +87,3 @@ type BookDetails struct {
 	Width    int64  `json:"width"`
 	Height   int64  `json:"height"`
 }
-
-//获取章节详情
-func (r *Spider) GetBookChapter(bookId, chapterId int64) {
-
-}

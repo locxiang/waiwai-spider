@@ -4,11 +4,10 @@ import (
 	"context"
 	"github.com/lexkong/log"
 	"github.com/locxiang/waiwai-spider/config"
+	"github.com/locxiang/waiwai-spider/model"
 	"github.com/locxiang/waiwai-spider/waiwai"
 	"github.com/spf13/pflag"
-	"os"
 	"runtime"
-	"runtime/trace"
 )
 
 var (
@@ -16,16 +15,6 @@ var (
 )
 
 func main() {
-
-
-	f, _ := os.Create("trace.out")
-	trace.Start(f)
-
-	defer func() {
-		f.Close()
-		trace.Stop()
-	}()
-
 
 	//使用全部cpu
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -35,10 +24,19 @@ func main() {
 	if err := config.Init(*cfg); err != nil {
 		panic(err)
 	}
+	mysqlCfg := config.Values.Mysql
+	cfg := model.Config{
+		UserName: mysqlCfg.User,
+		Password: mysqlCfg.Pass,
+		Addr:     mysqlCfg.Addr,
+		DbName:   mysqlCfg.DB,
+	}
+	if err := model.ConnDB(cfg); err != nil {
+		panic(err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	waiwai.New(ctx, cancel)
-
 
 	waiwai.RunEntry()
 

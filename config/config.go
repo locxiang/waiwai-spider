@@ -12,11 +12,6 @@ var Values *Config
 type Config struct {
 	Name string
 
-
-	Redis struct {
-		Addr string `mapstructure:"addr"`
-	} `mapstructure:"redis"`
-
 	Log struct {
 		Writers        string `mapstructure:"writers"`
 		LoggerLevel    string `mapstructure:"logger_level"`
@@ -29,7 +24,7 @@ type Config struct {
 	} `mapstructure:"log"`
 
 	Mysql struct {
-		Host string `mapstructure:"host"` //ip地址端口号
+		Addr string `mapstructure:"addr"` //ip地址端口号
 		User string `json:"user"`
 		Pass string `json:"pass"`
 		DB   string `json:"db"`

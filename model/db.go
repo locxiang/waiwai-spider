@@ -11,7 +11,7 @@ import (
 type Config struct {
 	UserName string
 	Password string
-	Host     string
+	Addr     string
 	DbName   string
 }
 
@@ -19,7 +19,7 @@ var DB *gorm.DB
 
 func ConnDB(c Config) (err error) {
 
-	url := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", c.UserName, c.Password, c.Host, c.DbName)
+	url := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", c.UserName, c.Password, c.Addr, c.DbName)
 	log.Debugf("url:%s", url)
 	DB, err = gorm.Open("mysql", url)
 
@@ -29,9 +29,22 @@ func ConnDB(c Config) (err error) {
 	DB.DB().SetMaxIdleConns(10)
 	DB.DB().SetMaxOpenConns(100)
 
-	return err
+	gorm.DefaultCallback.Update().Remove("gorm:update_time_stamp")
+	gorm.DefaultCallback.Create().Remove("gorm:update_time_stamp")
+
+	go func() {
+		for {
+			pingErr := DB.DB().Ping()
+			if pingErr != nil {
+				log.Error("ping db ", pingErr)
+			}
+			time.Sleep(3 * time.Second)
+		}
+	}()
+	return MigrateInit()
 }
 
 func CloseDB() error {
+	log.Infof("数据库断开连接")
 	return DB.Close()
 }

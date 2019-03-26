@@ -34,7 +34,7 @@
 
 
 获取所有的漫画清单（已经下载在本地）
-https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=2000&page=1&category=
+https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=60&page=1&category=
 
 
 书籍目录

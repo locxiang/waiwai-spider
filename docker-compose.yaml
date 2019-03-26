@@ -1,0 +1,25 @@
+version: '3'
+services:
+#  web:
+#    build: .
+#    ports:
+#      - 80:80
+
+  mysql-some:
+    image: mysql:5.7
+    ports:
+      - 3306:3306
+    volumes:
+      - ./docker/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - 8080:80
+    links:
+      - mysql-some
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - PMA_HOST=mysql-some

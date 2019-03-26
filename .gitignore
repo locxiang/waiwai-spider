@@ -16,3 +16,6 @@
 .glide/
 .idea/
 go.sum
+.DS_Store
+storage/
+docker/

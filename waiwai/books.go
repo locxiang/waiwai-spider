@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/lexkong/log"
+	"github.com/locxiang/waiwai-spider/model"
+	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
 	"net/http"
 )
@@ -24,7 +26,7 @@ func (books *BooksTask) Record() error {
 func RunEntry() error {
 
 	//入口
-	url := "https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=2000&page=1&category="
+	url := "https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=20&page=1&category="
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -32,7 +34,6 @@ func RunEntry() error {
 	}
 	//给一个key设定为响应的value.
 	req.Header.Set("Content-Type", "application/json")
-
 
 	books := new(BooksTask)
 	books.req = req
@@ -109,6 +110,17 @@ func (books *BooksTask) Next() error {
 		//把书存下来
 		AddBook(book)
 
+		b, err := book.CheckUpdate()
+		if err != nil {
+			log.Error("book CheckUpdate", err)
+			continue
+		}
+		//判断是否有更新
+		if b == false {
+			//没有更新
+			continue
+		}
+
 		// 把书全部加入到队列
 		menuUrl := fmt.Sprintf("https://m.tititoy2688.com/query/book/directory?bookId=%d", book.ID)
 
@@ -120,11 +132,49 @@ func (books *BooksTask) Next() error {
 		//给一个key设定为响应的value.
 		req.Header.Set("Content-Type", "application/json")
 
-
-
 		if err := new(BookMenuTask).New(req); err != nil {
 			log.Error("book_menu task new error:", err)
 		}
 	}
 	return nil
+}
+
+//检查更新
+func (b *Book) CheckUpdate() (bool, error) {
+
+	m := &model.Book{
+		ID:           b.ID,
+		Name:         b.Name,
+		Author:       b.Author,
+		Description:  b.Description,
+		ExtensionURL: b.ExtensionURL,
+		Keywords:     b.Keywords,
+		Category:     b.Category,
+		LastChapter:  b.LastChapter,
+		ChapterCount: b.ChapterCount,
+		Tags:         b.Tags,
+		Status:       b.Status.Value,
+	}
+
+	book, found, err := m.Get(b.ID)
+	if err != nil && found == false {
+		// 有错误，并且不是数据不存在
+		return false, errors.Wrap(err, "获取book信息失败")
+	}
+
+	if found {
+		err := m.Create()
+		if err != nil {
+			return false, errors.Wrap(err, "创建数据信息失败")
+		}
+
+		return true, nil
+	}
+
+	//有更新
+	if book.LastChapter != b.LastChapter {
+		return true, nil
+	}
+
+	return false, nil
 }
