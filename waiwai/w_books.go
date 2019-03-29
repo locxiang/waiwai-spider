@@ -10,40 +10,40 @@ import (
 	"net/http"
 )
 
-type BooksTask struct {
+type BookTask struct {
 	req  *http.Request
-	Data Books
+	Data BookList
 }
 
-type Books []Book
+type BookList []Book
 
-func (books *BooksTask) Record() error {
-	books.printf()
+func (b *BookTask) Record() error {
+	b.printf()
 	return nil
 }
 
 //爬虫入口
 func RunEntry() error {
 
-	//入口
-	url := "https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=20&page=1&category="
+	for page := 1; page <= 100; page ++ {
+		url := fmt.Sprintf("https://m.tititoy2688.com/query/books?type=cartoon&paged=true&size=20&page=%d&category=", page)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return err
+		}
+		//给一个key设定为响应的value.
+		req.Header.Set("Content-Type", "application/json")
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return err
+		books := new(BookTask)
+		books.req = req
+		books.Data = make(BookList, 0, 20)
+		spider.AddTask(books)
 	}
-	//给一个key设定为响应的value.
-	req.Header.Set("Content-Type", "application/json")
-
-	books := new(BooksTask)
-	books.req = req
-	books.Data = make(Books, 0, 20)
-	spider.AddTask(books)
 	return nil
 }
 
-func (books *BooksTask) Marshal() ([]byte, error) {
-	return json.Marshal(books)
+func (b *BookTask) Marshal() ([]byte, error) {
+	return json.Marshal(b)
 }
 
 type Book struct {
@@ -82,31 +82,26 @@ type OnSale struct {
 }
 
 //获取所有要爬的漫画列表
-func (books *BooksTask) Run() error {
+func (b *BookTask) Run() error {
 	//获取内容
-	body, err := spider.getContent(books.req)
+	body, err := spider.getContent(b.req)
 	if err != nil {
 		return err
 	}
 	str := gjson.Get(body, "list").String()
 
-	fmt.Printf("%s\n", str)
-
-	err = json.Unmarshal([]byte(str), &books.Data)
+	err = json.Unmarshal([]byte(str), &b.Data)
 
 	return err
 }
 
-func (books *BooksTask) printf() {
-	fmt.Printf("printf的地址%p count:%d\n", books.Data, len(books.Data))
-	for _, book := range books.Data {
-		fmt.Printf("ID:%d , 书名:%s \n", book.ID, book.Name)
-	}
+func (b *BookTask) printf() {
+	log.Infof("检索%d本书", len(b.Data))
 }
 
 //下一步
-func (books *BooksTask) Next() error {
-	for _, book := range books.Data {
+func (b *BookTask) Next() error {
+	for _, book := range b.Data {
 		//把书存下来
 		AddBook(book)
 
@@ -121,7 +116,9 @@ func (books *BooksTask) Next() error {
 			continue
 		}
 
-		// 把书全部加入到队列
+		log.Infof("发现【%s】新内容: %d", book.Name, book.LastChapter)
+
+		// 添加爬去书籍的章节的任务
 		menuUrl := fmt.Sprintf("https://m.tititoy2688.com/query/book/directory?bookId=%d", book.ID)
 
 		req, err := http.NewRequest(http.MethodGet, menuUrl, nil)
@@ -132,7 +129,7 @@ func (books *BooksTask) Next() error {
 		//给一个key设定为响应的value.
 		req.Header.Set("Content-Type", "application/json")
 
-		if err := new(BookMenuTask).New(req); err != nil {
+		if err := new(ChapterTask).New(req); err != nil {
 			log.Error("book_menu task new error:", err)
 		}
 	}
@@ -165,7 +162,7 @@ func (b *Book) CheckUpdate() (bool, error) {
 	if found {
 		err := m.Create()
 		if err != nil {
-			return false, errors.Wrap(err, "创建数据信息失败")
+			return false, errors.Wrap(err, "创建book数据信息失败")
 		}
 
 		return true, nil
@@ -173,6 +170,9 @@ func (b *Book) CheckUpdate() (bool, error) {
 
 	//有更新
 	if book.LastChapter != b.LastChapter {
+		if err := m.Update(); err != nil {
+			return false, errors.Wrap(err, "更新book信息失败")
+		}
 		return true, nil
 	}
 

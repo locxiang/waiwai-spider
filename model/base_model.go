@@ -8,6 +8,7 @@ import (
 )
 
 type IModel interface {
+	Migrate() error
 }
 
 type BaseModel struct {

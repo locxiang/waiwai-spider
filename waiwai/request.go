@@ -51,12 +51,12 @@ func New(ctx context.Context, cancel context.CancelFunc) *Spider {
 	spider = &Spider{
 		tasks: NewSyncQueue(),
 		Sleep: func() {
-			log.Debugf("执行暂停")
+			log.Infof("执行暂停")
 			time.Sleep(200 * time.Millisecond) //暂停时间
 		},
 		client:     client,
 		cancel:     cancel,
-		concurrent: 4,
+		concurrent: 1,		//创建一个
 	}
 
 	for i := spider.concurrent; i > 0; i-- {
@@ -81,9 +81,9 @@ func (r *Spider) executeTask(ctx context.Context) {
 			return
 
 		case <-time.After(10 * time.Second):
-			log.Debugf("暂时没有任务，结束")
-			r.cancel()
-			return
+			log.Infof("没有任务，重新开始")
+			RunEntry()
+			continue
 		case v := <-c:
 			task := v.(Tasker)
 			//执行任务
@@ -93,7 +93,7 @@ func (r *Spider) executeTask(ctx context.Context) {
 					for j := i; j > 0; j-- {
 						r.Sleep()
 					}
-					log.Infof("第%d次重试：...", p)
+					log.Warnf("第%d次重试：...", p)
 					p++
 					continue
 				} else {
@@ -104,13 +104,13 @@ func (r *Spider) executeTask(ctx context.Context) {
 			//记录任务情况
 			if err := task.Record(); err != nil {
 				log.Error("task record ", err)
-				return
+				continue
 			}
 
 			//执行任务下一步
 			if err := task.Next(); err != nil {
 				log.Error("task next", err)
-				return
+				continue
 			}
 
 			//暂停

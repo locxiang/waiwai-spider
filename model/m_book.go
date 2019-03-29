@@ -29,6 +29,11 @@ func (b *Book) Create() error {
 	return query.Error
 }
 
+func (b *Book) Update() error {
+	query := DB.Model(b).Where("id = ?", b.ID).Update(b)
+	return query.Error
+}
+
 /** 获取书籍信息
 @param id    书籍id
 @return *Book  书籍信息

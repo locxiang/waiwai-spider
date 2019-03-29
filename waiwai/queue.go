@@ -3,6 +3,7 @@ package waiwai
 import (
 	"container/list"
 	"fmt"
+	"github.com/lexkong/log"
 	"sync"
 )
 
@@ -34,9 +35,9 @@ func (q *SyncQueue) NewConsumer() chan interface{} {
 
 	go func() {
 		defer func() {
-			if recover() != nil {
-				//外部关闭消费
-				fmt.Printf("关闭chan \n")
+			if e := recover(); e != nil {
+				err := fmt.Errorf("%s", e)
+				log.Warnf("通道关闭", err)
 			}
 		}()
 

@@ -24,7 +24,7 @@ func ConnDB(c Config) (err error) {
 	DB, err = gorm.Open("mysql", url)
 
 	// 启用Logger，显示详细日志
-	DB.LogMode(true)
+	DB.LogMode(false)
 	DB.DB().SetConnMaxLifetime(time.Second * 20)
 	DB.DB().SetMaxIdleConns(10)
 	DB.DB().SetMaxOpenConns(100)

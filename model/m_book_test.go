@@ -106,3 +106,55 @@ func TestBook_Get(t *testing.T) {
 		})
 	}
 }
+
+func TestBook_Update(t *testing.T) {
+	TestConnDB(t)
+
+	type fields struct {
+		ID           int64
+		Name         string
+		Author       string
+		Description  string
+		ExtensionURL string
+		Keywords     string
+		Category     string
+		LastChapter  int64
+		ChapterCount int64
+		Tags         string
+		Status       string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "正常更新",
+			fields: fields{
+				ID:          1398,
+				LastChapter: 3232,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := &Book{
+				ID:           tt.fields.ID,
+				Name:         tt.fields.Name,
+				Author:       tt.fields.Author,
+				Description:  tt.fields.Description,
+				ExtensionURL: tt.fields.ExtensionURL,
+				Keywords:     tt.fields.Keywords,
+				Category:     tt.fields.Category,
+				LastChapter:  tt.fields.LastChapter,
+				ChapterCount: tt.fields.ChapterCount,
+				Tags:         tt.fields.Tags,
+				Status:       tt.fields.Status,
+			}
+			if err := b.Update(); (err != nil) != tt.wantErr {
+				t.Errorf("Book.Update() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
